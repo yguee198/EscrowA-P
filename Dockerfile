@@ -1,13 +1,13 @@
 # Multi-stage build for NestJS backend
-FROM node:18-alpine AS builder
+FROM node:18-bookworm AS builder
 
 WORKDIR /app
 
 # Copy workspace package files
 COPY package*.json ./
 COPY backend/package*.json ./backend/
-COPY backend/tsconfig*.json ./backend/
-COPY backend/nest-cli*.json ./backend/
+COPY backend/tsconfig.json ./backend/
+COPY backend/nest-cli.json ./backend/
 
 # Install dependencies at workspace level
 RUN npm ci
@@ -18,18 +18,19 @@ COPY backend/prisma ./backend/prisma/
 # Copy source code
 COPY backend/src ./backend/src/
 
-# Build
+# Generate Prisma client first
 WORKDIR /app/backend
-RUN npm run build
 RUN npx prisma generate
 
+# Build
+RUN npm run build
+
 # Production stage
-FROM node:18-alpine
+FROM node:18-bookworm
 
 WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/backend/node_modules ./backend/node_modules
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/prisma ./backend/prisma
 COPY backend/package*.json ./backend/
