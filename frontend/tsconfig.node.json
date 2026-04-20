@@ -1,0 +1,9 @@
+// tsconfig.node.json
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "types": ["node"]
+  }
+}

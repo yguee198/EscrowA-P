@@ -1,0 +1,317 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  phone          String         @unique 
+  email          String?        @unique
+  passwordHash   String?        @map("password_hash")
+  pinHash        String         @map("pin_hash")
+  is2faEnabled   Boolean        @default(false) @map("is_2fa_enabled")
+  role           UserRole       @default(USER)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  isLocked       Boolean        @default(false)
+  lockedUntil    DateTime?
+  pinAttempts    Int            @default(0)
+  nid            String?        @unique
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+  wallets        Wallet[]
+  otps           Otp[]
+  disputesOpened Dispute[]      @relation("UserOpenedDisputes")
+  Verification   Verification?
+  adminActions   AdminActionLog[] @relation("AdminActionLogAdmin")
+  targetActions  AdminActionLog[] @relation("AdminActionLogTarget")
+
+  @@map("users")
+}
+
+model Wallet {
+  id                   String        @id @default(uuid())
+  userId               String        @map("user_id")
+  balance              Decimal       @default(0) @db.Decimal(18, 2)
+  currency             String        @default("RWF") @db.VarChar(5)
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+  ledgerEntries        Ledger[]
+  receivedTransactions Transaction[] @relation("ReceiverWallet")
+  sentTransactions     Transaction[] @relation("SenderWallet")
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id               String            @id @default(uuid())
+  senderWalletId   String?           @map("sender_wallet_id")
+  receiverWalletId String?           @map("receiver_wallet_id")
+  amount           Decimal           @db.Decimal(18, 2)
+  fee              Decimal           @default(0) @db.Decimal(18, 2)
+  type             TransactionType
+  status           TransactionStatus @default(PENDING)
+  referenceId      String            @unique @map("reference_id")
+  description      String?
+  metadata         Json?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  escrow           Escrow?
+  ledgerEntries    Ledger[]
+  Notification     Notification[]
+  otps             Otp[]
+  receiverWallet   Wallet?           @relation("ReceiverWallet", fields: [receiverWalletId], references: [id])
+  senderWallet     Wallet?           @relation("SenderWallet", fields: [senderWalletId], references: [id])
+
+  @@index([senderWalletId])
+  @@index([receiverWalletId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model Ledger {
+  id            String      @id @default(uuid())
+  transactionId String      @map("transaction_id")
+  walletId      String      @map("wallet_id")
+  debit         Decimal     @default(0) @db.Decimal(18, 2)
+  credit        Decimal     @default(0) @db.Decimal(18, 2)
+  balanceBefore Decimal     @map("balance_before") @db.Decimal(18, 2)
+  balanceAfter  Decimal     @map("balance_after") @db.Decimal(18, 2)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  wallet        Wallet      @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([walletId])
+  @@map("ledger")
+}
+
+model Escrow {
+  id            String       @id @default(uuid())
+  transactionId String       @unique @map("transaction_id")
+  heldAmount    Decimal      @map("held_amount") @db.Decimal(18, 2)
+  status        EscrowStatus @default(HELD)
+  releaseDate   DateTime?    @map("release_date")
+  releasedAt    DateTime?    @map("released_at")
+  cancelledAt   DateTime?    @map("cancelled_at")
+  reason        String?
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  disputes    Dispute[]
+
+  @@index([status])
+  @@index([releaseDate])
+  @@map("escrow")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  action    String
+  metadata  Json?
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Otp {
+  id            String     @id @default(uuid())
+  userId        String?    @map("user_id")
+  transactionId String?    @map("transaction_id")
+  phone         String     @db.VarChar(20)
+  code          String
+  purpose       OtpPurpose
+  channel       OtpChannel @default(SMS)
+  attempts      Int        @default(0)
+  ipAddress     String?    @map("ip_address")
+  deviceInfo    String?    @map("device_info")
+  expiresAt     DateTime
+  used          Boolean    @default(false)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  user        User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([phone])
+  @@index([expiresAt])
+  @@index([userId])
+  @@index([used])
+  @@index([transactionId])
+  @@index([transactionId, purpose])
+}
+
+model Notification {
+  id            String             @id @default(uuid())
+  userId        String             @map("user_id")
+  transactionId String?            @map("transaction_id")
+  title         String             @db.VarChar(100)
+  message       String
+  type          NotificationType
+  status        NotificationStatus @default(UNREAD)
+  referenceId   String?            @map("reference_id")
+  channel       String             @db.VarChar(20)
+  readAt        DateTime?
+  archivedAt    DateTime?
+  createdAt     DateTime           @default(now()) @map("created_at")
+  transaction   Transaction?       @relation(fields: [transactionId], references: [id])
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@map("notifications")
+}
+
+model Dispute {
+  id         String             @id @default(uuid())
+  escrowId   String
+  openedBy   String
+  reason     String?
+  status     DisputeStatus      @default(OPEN)
+  resolution DisputeResolution?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  escrow Escrow @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+  user   User   @relation("UserOpenedDisputes", fields: [openedBy], references: [id], onDelete: Cascade)
+
+  @@map("disputes")
+}
+
+model Verification {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  nidNumber     String?
+  nidImageFront String
+  nidImageBack  String
+  selfieImage   String?
+
+  status          VerificationStatus @default(PENDING)
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UssdSession {
+  id          String   @id @default(cuid())
+  sessionId   String
+  phoneNumber String
+  currentStep String
+  data        Json?
+  language    String   @default("KIN")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([phoneNumber])
+  @@index([isActive])
+}
+
+model AdminActionLog {
+  id           String @id @default(uuid())
+  adminId      String? @map("admin_id")
+  action       String
+  targetUserId String? @map("target_user_id")
+  metadata     Json?
+
+  admin    User? @relation("AdminActionLogAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  targetUser User? @relation("AdminActionLogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetUserId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum TransactionType {
+  SEND
+  REQUEST
+  ESCROW
+  WITHDRAW
+  DEPOSIT
+  TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING
+  HELD
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum EscrowStatus {
+  HELD
+  DISPUTED
+  RELEASED
+  REFUNDED
+  CANCELLED
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+enum DisputeResolution {
+  REFUND
+  RELEASE
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum NotificationType {
+  TRANSACTION
+  ESCROW
+  BILL
+  AIRTIME
+  SYSTEM
+}
+
+enum OtpPurpose {
+  LOGIN
+  TRANSACTION
+  PASSWORD_RESET
+}
+
+enum OtpChannel {
+  SMS
+  EMAIL
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
