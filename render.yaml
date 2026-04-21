@@ -1,0 +1,36 @@
+# Render Blueprint - Backend API
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Backend API Service
+  - name: escrow-api
+    region: oregon
+    plan: starter
+    type: web
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REDIS_HOST
+        sync: true
+      - key: REDIS_PORT
+        value: 6379
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: ESCROW_AUTO_RELEASE_DAYS
+        value: 7
+
+  # Redis Service (Managed)
+  - name: escrow-redis
+    region: oregon
+    plan: starter
+    type: redis
+    ipAllowList: []
+    redisVersion: "7"
