@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Redis Service
   redis:
     image: redis:7-alpine
     container_name: escrow_redis
@@ -12,10 +13,16 @@ services:
     command: redis-server --appendonly yes
     networks:
       - escrow_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Backend API Service
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: escrow_backend
     restart: always
@@ -24,17 +31,19 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 6543
       JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: production
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - escrow_network
     volumes:
       - ./backend:/app
       - /app/node_modules
 
+  # Frontend Service
   frontend:
     build:
       context: ./frontend
@@ -44,7 +53,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: http://localhost:3000
+      VITE_API_URL: http://backend:3000
     depends_on:
       - backend
     networks:
