@@ -1,12 +1,7 @@
-# Render Blueprint - Backend API
-# https://render.com/docs/blueprint-spec
-
 databases:
   - name: escrow-db
     region: oregon
     plan: free
-    databaseName: escrow_db
-    databaseUser: escrow_user
 
 services:
   - name: escrow-api
@@ -34,4 +29,4 @@ services:
       - key: ESCROW_AUTO_RELEASE_DAYS
         value: "7"
       - key: FRONTEND_URL
-        value: "https://escrow-frontend.vercel.app"
+        value: "*"
