@@ -26,21 +26,12 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: REDIS_HOST
-        fromService:
-          name: escrow-redis
-          property: host
+        value: "redis"
       - key: REDIS_PORT
-        fromService:
-          name: escrow-redis
-          property: port
+        value: "6379"
       - key: BCRYPT_ROUNDS
         value: "12"
       - key: ESCROW_AUTO_RELEASE_DAYS
         value: "7"
-
-  - name: escrow-redis
-    region: oregon
-    plan: free
-    type: redis
-    ipAllowList: []
-    redisVersion: "7"
+      - key: FRONTEND_URL
+        value: "https://escrow-frontend.vercel.app"
