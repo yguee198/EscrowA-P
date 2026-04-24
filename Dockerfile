@@ -30,12 +30,22 @@ FROM node:18-bookworm
 
 WORKDIR /app
 
+# Copy node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
+
+# Copy built application
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/prisma ./backend/prisma
 COPY backend/package*.json ./backend/
+COPY backend/tsconfig.json ./backend/
+COPY backend/nest-cli.json ./backend/
 
 WORKDIR /app/backend
+
+# Run Prisma migrations and generate client
+RUN npx prisma migrate deploy
+RUN npx prisma generate
+
 EXPOSE 3000
 
 CMD ["npm", "run", "start:prod"]

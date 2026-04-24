@@ -1,6 +1,14 @@
 # Render Blueprint - Backend API
 # https://render.com/docs/blueprint-spec
 
+databases:
+  # PostgreSQL Database (Managed)
+  - name: escrow-db
+    region: oregon
+    plan: starter
+    databaseName: escrow_db
+    databaseUser: escrow_user
+
 services:
   # Backend API Service
   - name: escrow-api
@@ -8,20 +16,25 @@ services:
     plan: starter
     type: web
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
       - key: DATABASE_URL
-        sync: true
+        fromDatabase:
+          name: escrow-db
       - key: JWT_SECRET
         generateValue: true
       - key: REDIS_HOST
-        sync: true
+        fromService:
+          name: escrow-redis
+          property: host
       - key: REDIS_PORT
-        value: 6543
+        fromService:
+          name: escrow-redis
+          property: port
       - key: BCRYPT_ROUNDS
         value: 12
       - key: ESCROW_AUTO_RELEASE_DAYS

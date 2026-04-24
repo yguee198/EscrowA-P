@@ -34,6 +34,11 @@ async function bootstrap() {
     }),
   );
 
+  // Health check endpoint (outside API prefix)
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
