@@ -2,26 +2,24 @@
 # https://render.com/docs/blueprint-spec
 
 databases:
-  # PostgreSQL Database (Managed)
   - name: escrow-db
     region: oregon
-    plan: starter
+    plan: free
     databaseName: escrow_db
     databaseUser: escrow_user
 
 services:
-  # Backend API Service
   - name: escrow-api
     region: oregon
-    plan: starter
+    plan: free
     type: web
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: Dockerfile
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: "3000"
       - key: DATABASE_URL
         fromDatabase:
           name: escrow-db
@@ -36,14 +34,13 @@ services:
           name: escrow-redis
           property: port
       - key: BCRYPT_ROUNDS
-        value: 12
+        value: "12"
       - key: ESCROW_AUTO_RELEASE_DAYS
-        value: 7
+        value: "7"
 
-  # Redis Service (Managed)
   - name: escrow-redis
     region: oregon
-    plan: starter
+    plan: free
     type: redis
     ipAllowList: []
     redisVersion: "7"
