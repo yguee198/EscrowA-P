@@ -1,8 +1,3 @@
-databases:
-  - name: escrow-db
-    region: oregon
-    plan: free
-
 services:
   - name: escrow-api
     region: oregon
@@ -15,9 +10,6 @@ services:
         value: production
       - key: PORT
         value: "3000"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: escrow-db
       - key: JWT_SECRET
         generateValue: true
       - key: REDIS_HOST
