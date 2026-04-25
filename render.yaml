@@ -5,6 +5,7 @@ services:
     type: web
     dockerfilePath: Dockerfile
     healthCheckPath: /health
+    deployCommand: cd backend && npx prisma migrate deploy
     envVars:
       - key: NODE_ENV
         value: production
