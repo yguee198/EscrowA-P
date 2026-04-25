@@ -4,9 +4,11 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { WinstonLogger } from './common/logger/winston.logger';
+import { ExpressAdapter } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const adapter = new ExpressAdapter();
+  const app = await NestFactory.create(AppModule, adapter, {
     logger: new WinstonLogger(),
   });
 
@@ -35,7 +37,8 @@ async function bootstrap() {
   );
 
   // Health check endpoint (outside API prefix)
-  app.get('/health', (req, res) => {
+  const server = adapter.getInstance();
+  server.get('/health', (req: any, res: any) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
