@@ -17,9 +17,10 @@ async function bootstrap() {
   // Note: Helmet removed to fix CSP issues in development
 
   // CORS configuration
+  // Allow all origins for development
   app.enableCors({
-    origin: configService.get<string>('FRONTEND_URL', 'http://localhost:5173'),
-    credentials: true,
+    origin: '*',
+    credentials: false,
   });
 
   // Global validation pipe
