@@ -32,6 +32,7 @@ WORKDIR /app
 
 # Copy node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/backend/node_modules ./backend/node_modules
 
 # Copy built application
 COPY --from=builder /app/backend/dist ./backend/dist
