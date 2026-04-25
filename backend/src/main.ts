@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { WinstonLogger } from './common/logger/winston.logger';
 import { ExpressAdapter } from '@nestjs/platform-express';
@@ -15,13 +14,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
 
-  // Security middleware - disable CSP for development
-  app.use(
-    helmet({
-      contentSecurityPolicy: false,
-      crossOriginEmbedderPolicy: false,
-    }),
-  );
+  // Note: Helmet removed to fix CSP issues in development
 
   // CORS configuration
   app.enableCors({
