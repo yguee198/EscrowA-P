@@ -13,10 +13,6 @@ services:
         value: "3000"
       - key: JWT_SECRET
         generateValue: true
-      - key: REDIS_HOST
-        value: "redis"
-      - key: REDIS_PORT
-        value: "6379"
       - key: BCRYPT_ROUNDS
         value: "12"
       - key: ESCROW_AUTO_RELEASE_DAYS

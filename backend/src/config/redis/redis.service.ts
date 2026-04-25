@@ -4,15 +4,23 @@ import { createClient, RedisClientType } from 'redis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
- 
+
   private client: RedisClientType;
+  private isConnected = false;
 
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
+    const redisHost = this.configService.get<string>('REDIS_HOST');
+
+    if (!redisHost) {
+      console.log('⚠️ Redis not configured - running without caching');
+      return;
+    }
+
     this.client = createClient({
       socket: {
-        host: this.configService.get<string>('REDIS_HOST', 'localhost'),
+        host: redisHost,
         port: this.configService.get<number>('REDIS_PORT', 6379),
       },
     });
@@ -20,7 +28,17 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.client.on('error', (err) => console.error('Redis Client Error', err));
     this.client.on('connect', () => console.log('✅ Redis connected successfully'));
 
-    await this.client.connect();
+    try {
+      await this.client.connect();
+      this.isConnected = true;
+    } catch (err) {
+      console.log('⚠️ Redis connection failed - running without caching');
+      this.isConnected = false;
+    }
+  }
+
+  isRedisAvailable(): boolean {
+    return this.isConnected;
   }
 
   async onModuleDestroy() {
@@ -30,6 +48,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   // Set key with expiration (in seconds)
   async set(key: string, value: string, ttl?: number): Promise<void> {
+    if (!this.isConnected) return;
     if (ttl) {
       await this.client.setEx(key, ttl, value);
     } else {
@@ -39,16 +58,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   // Get value by key
   async get(key: string): Promise<string | null> {
+    if (!this.isConnected) return null;
     return await this.client.get(key);
   }
 
   // Delete key
   async del(key: string): Promise<void> {
+    if (!this.isConnected) return;
     await this.client.del(key);
   }
 
   // Check if key exists
   async exists(key: string): Promise<boolean> {
+    if (!this.isConnected) return false;
     const result = await this.client.exists(key);
     return result === 1;
   }
@@ -66,16 +88,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   // Increment counter (for rate limiting)
   async incr(key: string): Promise<number> {
+    if (!this.isConnected) return 0;
     return await this.client.incr(key);
   }
 
   // Set expiration on existing key
   async expire(key: string, seconds: number): Promise<void> {
+    if (!this.isConnected) return;
     await this.client.expire(key, seconds);
   }
 
   // Get time to live
   async ttl(key: string): Promise<number> {
+    if (!this.isConnected) return 0;
     return await this.client.ttl(key);
   }
 
