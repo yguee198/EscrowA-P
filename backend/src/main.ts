@@ -16,7 +16,11 @@ async function bootstrap() {
   const port = configService.get<number>('PORT', 3000);
 
   // Security middleware
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+    }),
+  );
 
   // CORS configuration
   app.enableCors({
