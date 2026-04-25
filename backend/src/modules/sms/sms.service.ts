@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import AfricaTalking from 'africastalking';
+import * as AfricaTalking from 'africastalking';
 
 @Injectable()
 export class SmsService {
