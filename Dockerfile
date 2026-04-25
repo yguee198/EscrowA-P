@@ -42,10 +42,6 @@ COPY backend/nest-cli.json ./backend/
 
 WORKDIR /app/backend
 
-# Run Prisma migrations and generate client
-RUN npx prisma migrate deploy
-RUN npx prisma generate
-
 EXPOSE 3000
 
 CMD ["npm", "run", "start:prod"]
