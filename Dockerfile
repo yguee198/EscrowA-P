@@ -10,7 +10,7 @@ COPY backend/tsconfig.json ./backend/
 COPY backend/nest-cli.json ./backend/
 
 # Install dependencies at workspace level
-RUN npm ci
+RUN npm install
 
 # Copy prisma schema
 COPY backend/prisma ./backend/prisma/
